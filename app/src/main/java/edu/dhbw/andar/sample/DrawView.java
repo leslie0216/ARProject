@@ -42,7 +42,7 @@ public class DrawView extends View {
         public float m_ballY;
         public boolean m_isTouched;
         public String m_id;
-
+        public String m_name;
     }
 
     private static final float m_ballRadius = 50.0f;
@@ -52,8 +52,6 @@ public class DrawView extends View {
     private float m_localCoordinateCenterX;
     private float m_localCoordinateCenterY;
     private float m_localCoordinateRadius;
-
-    private float m_throwAngle;
 
     private float [] m_glMatrix;
 
@@ -86,6 +84,21 @@ public class DrawView extends View {
         }
     };
 
+    /**
+     * experiment begin
+     */
+    private ArrayList<String> m_ballNames;
+    private long m_trailStartTime;
+    private int m_numberOfDrops;
+    private int m_numberOfErrors;
+    private int m_maxBlocks;
+    private int m_maxTrails;
+    private int m_currentBlock;
+    private int m_currentTrail;
+    /**
+     * experiment end
+     */
+
     public DrawView(Context context) {
         super(context);
         m_paint = new Paint();
@@ -112,7 +125,6 @@ public class DrawView extends View {
         m_localCoordinateCenterX = displayMetrics.widthPixels * 0.5f;
         m_localCoordinateCenterY = displayMetrics.heightPixels * 0.9f;
         m_localCoordinateRadius = displayMetrics.widthPixels * 0.5f;
-        m_throwAngle = 0.0f;
 
         m_remotePhoneRadius = displayMetrics.heightPixels * 0.05f;
 
@@ -146,7 +158,7 @@ public class DrawView extends View {
         //showOffset(canvas);
         showLocalCircleCoordinate(canvas);
         showMessage(canvas);
-        showBall(canvas);
+        showBalls(canvas);
         showBoundary(canvas);
         showLocalAngle(canvas);
     }
@@ -249,6 +261,7 @@ public class DrawView extends View {
         float bottom = displayMetrics.heightPixels * 0.9f + m_localCoordinateRadius;
         RectF disRect = new RectF(left, top, right, bottom);
 
+        m_paint.setStrokeWidth(10);
         canvas.drawArc(disRect, 180.0f, 180.0f, false, m_paint);
 
         CustomActivity customActivity = (CustomActivity)getContext();
@@ -312,11 +325,25 @@ public class DrawView extends View {
         canvas.drawText(m_message, displayMetrics.widthPixels * 0.5f, displayMetrics.heightPixels * 0.95f, m_paint);
     }
 
-    public void showBall(Canvas canvas) {
+    public void showBalls(Canvas canvas) {
         m_paint.setStyle(Paint.Style.FILL_AND_STROKE);
         for (Ball ball : m_balls) {
             m_paint.setColor(ball.m_ballColor);
             canvas.drawCircle(ball.m_ballX, ball.m_ballY, m_ballRadius, m_paint);
+
+            /**
+             * experiment begin
+             */
+            m_paint.setStrokeWidth(2);
+            float textX = ball.m_ballX - m_ballRadius;
+            float textY = ball.m_ballY - m_ballRadius;
+            if (ball.m_name.length() > 5) {
+                textX = ball.m_ballX - m_ballRadius * 2.0f;
+            }
+            canvas.drawText(ball.m_name, textX, textY, m_paint);
+            /**
+             * experiment end
+             */
         }
     }
 
@@ -492,22 +519,10 @@ public class DrawView extends View {
                             }
                         }
 
-                        if (!isOverlap) {
-                            if (isBoundary(X, Y))
-                            {
-                                String id = SendTo(m_throwAngle);
-                                if (!id.isEmpty())
-                                {
-                                    sendBall(ball, id);
-                                    showToast("send ball to : " + id);
-                                    removeBall(ball.m_id);
-                                    this.invalidate();
-                                }
-                            } else {
-                                ball.m_ballX = X;
-                                ball.m_ballY = Y;
-                                this.invalidate();
-                            }
+                        if (!isOverlap & !isBoundary(X, Y)) {
+                            ball.m_ballX = X;
+                            ball.m_ballY = Y;
+                            this.invalidate();
                         }
                     }
                 }
@@ -518,6 +533,36 @@ public class DrawView extends View {
                     setShowRemoteNames(false);
                     invalidate();
                 }
+
+                if (m_touchedBallId > -1) {
+                    Ball ball = m_balls.get(m_touchedBallId);
+                    if (ball.m_isTouched) {
+                        boolean isOverlap = false;
+
+                        for (int j = 0; j < m_balls.size(); ++j) {
+                            if (j != m_touchedBallId) {
+                                Ball ball2 = m_balls.get(j);
+
+                                double dist = Math.sqrt(Math.pow((X - ball2.m_ballX), 2) + Math.pow((Y - ball2.m_ballY), 2));
+                                if (dist <= m_ballRadius * 2) {
+                                    isOverlap = true;
+                                }
+                            }
+                        }
+
+                        if (!isOverlap) {
+                            String id = isSending(ball.m_ballX, ball.m_ballY);
+                            if (!ball.m_name.isEmpty() && !id.isEmpty() && id.equalsIgnoreCase(ball.m_name)) {
+                                ((CustomActivity) getContext()).showToast("send ball to : " + id);
+                                //sendBall(ball, id);
+                                removeBall(ball.m_id);
+                                this.invalidate();
+                                endTrail();
+                            }
+                        }
+                    }
+                }
+
                 for (Ball ball : m_balls) {
                     ball.m_isTouched = false;
                 }
@@ -535,33 +580,25 @@ public class DrawView extends View {
             // check bottom
             if ((y + m_ballRadius) >= (displayMetrics.heightPixels * 0.9f)) {
                 rt = true;
-                m_throwAngle = -1.0f;
                 break;
             }
 
             // check left
             if (x - m_ballRadius <= 0.0f) {
                 rt = true;
-                m_throwAngle = 180.0f;
                 break;
             }
 
             // check right
             if (x + m_ballRadius >= displayMetrics.widthPixels) {
                 rt = true;
-                m_throwAngle = 0.0f;
                 break;
             }
 
             //check top
             double dist = Math.sqrt(Math.pow((x - m_localCoordinateCenterX), 2) + Math.pow((y - m_localCoordinateCenterY), 2));
             if (dist + m_ballRadius >= m_localCoordinateRadius) {
-                float sin = (m_localCoordinateCenterY - y)/(float)dist;
                 rt = true;
-                m_throwAngle = (float)Math.toDegrees(Math.asin(sin));
-                if (x < m_localCoordinateCenterX) {
-                    m_throwAngle += 90.0f;
-                }
             }
             break;
         }
@@ -603,17 +640,20 @@ public class DrawView extends View {
         return rt;
     }
 
-    private String SendTo(float angle) {
+    private String isSending(float x, float y) {
         String receiverId = "";
         float rate = 1000.0f;
-        if (angle != -1.0f) {
-            if (!m_remotePhones.isEmpty()) {
-                for (RemotePhoneInfo remotePhoneInfo : m_remotePhones) {
-                    float angle_remote = calculateRemoteAngle(remotePhoneInfo.m_angle);
-                    if (Math.abs(angle_remote - angle) <= 10.0f){
-                        if (angle_remote < rate) {
-                            receiverId = remotePhoneInfo.m_id;
-                        }
+        if (!m_remotePhones.isEmpty()) {
+            for (RemotePhoneInfo remotePhoneInfo : m_remotePhones) {
+                float angle_remote = calculateRemoteAngle(remotePhoneInfo.m_angle);
+                float pointX = m_localCoordinateCenterX + m_localCoordinateRadius * (float)Math.cos(Math.toRadians(angle_remote));
+                float pointY = m_localCoordinateCenterY - m_localCoordinateRadius * (float)Math.sin(Math.toRadians(angle_remote));
+
+                double dist = Math.sqrt(Math.pow((x - pointX), 2) + Math.pow((y - pointY), 2));
+                if (dist < (m_remotePhoneRadius + m_ballRadius)){
+                    if (dist < rate) {
+                        receiverId = remotePhoneInfo.m_id;
+                        rate = (float)dist;
                     }
                 }
             }
@@ -630,6 +670,7 @@ public class DrawView extends View {
         ball.m_ballY = m_ballBornY;
         ball.m_isTouched = false;
         ball.m_id = UUID.randomUUID().toString();
+        ball.m_name = getBallName();
 
         m_balls.add(ball);
     }
@@ -734,6 +775,16 @@ public class DrawView extends View {
             info.m_color = color;
             info.m_angle = angle;
             m_remotePhones.add(info);
+
+            /**
+             * experiment end
+             */
+            if (m_remotePhones.size() == 3) {
+                initExperiment();
+            }
+            /**
+             * experiment end
+             */
         }
     }
 
@@ -756,4 +807,88 @@ public class DrawView extends View {
     public int getBallCount() {
         return m_balls.size();
     }
+
+    /**
+     * experiment begin
+     */
+    private void initExperiment() {
+        // init ball names
+        m_ballNames = new ArrayList<>();
+
+        m_maxBlocks = 5;
+        m_maxTrails = 9;
+
+        m_currentBlock = 0;
+        m_currentTrail = 0;
+
+        resetBlock();
+
+        ((CustomActivity)getContext()).runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ((CustomActivity) getContext()).setStartButtonEnabled(true);
+            }
+        });
+    }
+
+    private String getBallName() {
+        if (m_ballNames.isEmpty()) {
+            return "";
+        }
+
+        Random rnd = new Random();
+        int index = rnd.nextInt(m_ballNames.size());
+        String name = m_ballNames.get(index);
+        m_ballNames.remove(index);
+        return name;
+    }
+
+    public void nextBlock() {
+        ((CustomActivity)getContext()).setStartButtonEnabled(true);
+        ((CustomActivity)getContext()).setContinueButtonEnabled(false);
+    }
+
+    public void resetBlock() {
+        // reset ball names
+        m_ballNames.clear();
+        for (RemotePhoneInfo remotePhoneInfo : m_remotePhones){
+            for(int i=0; i<3; i++){
+                m_ballNames.add(remotePhoneInfo.m_id);
+            }
+        }
+    }
+
+    public void startBlock() {
+        m_currentBlock += 1;
+        m_currentTrail = 0;
+        resetBlock();
+        startTrial();
+        ((CustomActivity)getContext()).setStartButtonEnabled(false);
+    }
+
+    public void endBlock() {
+        if (m_currentBlock < m_maxBlocks) {
+            ((CustomActivity) getContext()).setContinueButtonEnabled(true);
+        }
+        m_currentTrail = 0;
+    }
+
+    public void startTrial() {
+        addBall();
+        m_trailStartTime = System.currentTimeMillis();
+        m_currentTrail += 1;
+    }
+
+    public void endTrail() {
+        long timeElapse = System.currentTimeMillis() - m_trailStartTime;
+
+        if (m_currentTrail < m_maxTrails) {
+            startTrial();
+        } else {
+            endBlock();
+        }
+    }
+    /**
+     * experiment end
+     */
 }

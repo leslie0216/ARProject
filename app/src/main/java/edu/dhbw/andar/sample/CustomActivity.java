@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 
@@ -74,6 +75,15 @@ public class CustomActivity extends AndARActivity {
     /** BT end
      */
 
+    /**
+     * experiment begin
+     */
+    private Button m_startBtn;
+    private Button m_continueBtn;
+    /**
+     * experiment end
+     */
+
  	CustomObject someObject;
 	ARToolkit artoolkit;
     DrawView m_drawView;
@@ -129,7 +139,7 @@ public class CustomActivity extends AndARActivity {
         m_userName = bundle.getString("user");
         m_userId = bundle.getString("id");
 
-        setTitle(m_userId+" : "+m_userName);
+        setTitle(m_userId + " : " + m_userName);
 
         /**
          * BT begin
@@ -138,24 +148,58 @@ public class CustomActivity extends AndARActivity {
         /**
          * BT end
          */
+        m_startBtn = new Button(this);
+        m_startBtn.setText("Start");
+
+        m_startBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (m_drawView != null && m_drawView.getBallCount() == 0)
+                    m_drawView.startBlock();
+            }
+        });
+
+        RelativeLayout relativeLayout = new RelativeLayout(this);
+
+        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+        relativeLayout.addView(m_startBtn, layoutParams);
+
+        setStartButtonEnabled(false);
 
         m_drawView = new DrawView(this);
         m_drawView.setBackgroundColor(Color.TRANSPARENT);
 
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        this.addContentView(m_drawView, new LinearLayout.LayoutParams(displayMetrics.widthPixels,(displayMetrics.heightPixels)));
+        this.addContentView(m_drawView, new LinearLayout.LayoutParams(displayMetrics.widthPixels, (displayMetrics.heightPixels)));
 
-        Button btn = new Button(this);
-        btn.setText("Add Ball");
-        btn.setOnClickListener(new View.OnClickListener() {
+        this.addContentView(relativeLayout, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        /**
+         * experiment begin
+         */
+        m_continueBtn = new Button(this);
+        m_continueBtn.setText("Continue");
+        m_continueBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (m_drawView != null && m_drawView.getBallCount() == 0)
-                    m_drawView.addBall();
+                    m_drawView.nextBlock();
             }
         });
-        this.addContentView(btn, new LinearLayout.LayoutParams((int)(displayMetrics.widthPixels * 0.2f),(int)(displayMetrics.heightPixels * 0.1f)));
 
+        RelativeLayout relativeLayout_con = new RelativeLayout(this);
+
+        RelativeLayout.LayoutParams layoutParams_con = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams_con.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        relativeLayout_con.addView(m_continueBtn, layoutParams_con);
+
+        setContinueButtonEnabled(false);
+
+        this.addContentView(relativeLayout_con, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        /**
+         * experiment end
+         */
 
         startTime = System.currentTimeMillis();
         timerHandler.postDelayed(timerRunnable, 0);
@@ -191,6 +235,21 @@ public class CustomActivity extends AndARActivity {
         if(m_drawView != null)
             m_drawView.updateglMatrix(matrix);
     }
+
+    /**
+     * experiment begin
+     */
+    public void setStartButtonEnabled(boolean enabled) {
+        m_startBtn.setEnabled(enabled);
+    }
+
+    public void setContinueButtonEnabled(boolean enabled) {
+        m_continueBtn.setEnabled(enabled);
+    }
+
+    /**
+     * experiment end
+     */
 
     /**
      * BT begin
