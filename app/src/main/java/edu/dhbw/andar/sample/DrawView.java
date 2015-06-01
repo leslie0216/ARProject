@@ -95,6 +95,7 @@ public class DrawView extends View {
     private int m_maxTrails;
     private int m_currentBlock;
     private int m_currentTrail;
+    private static final int m_experimentPhoneNumber = 3;
     /**
      * experiment end
      */
@@ -779,7 +780,7 @@ public class DrawView extends View {
             /**
              * experiment end
              */
-            if (m_remotePhones.size() == 3) {
+            if (m_remotePhones.size() == m_experimentPhoneNumber) {
                 initExperiment();
             }
             /**
@@ -856,6 +857,10 @@ public class DrawView extends View {
                 m_ballNames.add(remotePhoneInfo.m_id);
             }
         }
+
+        // reset self color
+        Random rnd = new Random();
+        m_color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
     }
 
     public void startBlock() {
