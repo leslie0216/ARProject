@@ -26,6 +26,7 @@ public class DrawView extends View {
     Paint m_paint;
 
     private String m_id;
+    private String m_name;
 
     private int m_color;
 
@@ -66,7 +67,7 @@ public class DrawView extends View {
     private float m_angle;
 
     public class RemotePhoneInfo {
-        String m_id;
+        String m_name;
         int m_color;
         float m_angle;
     }
@@ -96,6 +97,7 @@ public class DrawView extends View {
     private int m_currentBlock;
     private int m_currentTrail;
     private static final int m_experimentPhoneNumber = 3;
+    private MainLogger m_logger;
     /**
      * experiment end
      */
@@ -119,7 +121,8 @@ public class DrawView extends View {
 
         m_glMatrix = new float[16];
 
-        m_id = ((CustomActivity)(context)).getBTName();
+        m_id = ((CustomActivity)(context)).getUserId();
+        m_name = ((CustomActivity)(context)).getUserName();
         Random rnd = new Random();
         m_color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
 
@@ -298,10 +301,10 @@ public class DrawView extends View {
                     m_paint.setStrokeWidth(2);
                     float textX = pointX - m_remotePhoneRadius;
                     float textY = pointY - m_remotePhoneRadius * 1.5f;
-                    if (info.m_id.length() > 5) {
+                    if (info.m_name.length() > 5) {
                         textX = pointX - m_remotePhoneRadius * 2.0f;
                     }
-                    canvas.drawText(info.m_id, textX, textY, m_paint);
+                    canvas.drawText(info.m_name, textX, textY, m_paint);
                 }
             }
         }
@@ -536,6 +539,7 @@ public class DrawView extends View {
                 }
 
                 if (m_touchedBallId > -1) {
+                    m_numberOfDrops += 1;
                     Ball ball = m_balls.get(m_touchedBallId);
                     if (ball.m_isTouched) {
                         boolean isOverlap = false;
@@ -552,13 +556,17 @@ public class DrawView extends View {
                         }
 
                         if (!isOverlap) {
-                            String id = isSending(ball.m_ballX, ball.m_ballY);
-                            if (!ball.m_name.isEmpty() && !id.isEmpty() && id.equalsIgnoreCase(ball.m_name)) {
-                                ((CustomActivity) getContext()).showToast("send ball to : " + id);
-                                //sendBall(ball, id);
-                                removeBall(ball.m_id);
-                                this.invalidate();
-                                endTrail();
+                            String name = isSending(ball.m_ballX, ball.m_ballY);
+                            if (!ball.m_name.isEmpty() && !name.isEmpty()) {
+                                if (name.equalsIgnoreCase(ball.m_name)) {
+                                    ((CustomActivity) getContext()).showToast("send ball to : " + name);
+                                    //sendBall(ball, id);
+                                    removeBall(ball.m_id);
+                                    this.invalidate();
+                                    endTrail();
+                                } else {
+                                    m_numberOfErrors += 1;
+                                }
                             }
                         }
                     }
@@ -642,7 +650,7 @@ public class DrawView extends View {
     }
 
     private String isSending(float x, float y) {
-        String receiverId = "";
+        String receiverName = "";
         float rate = 1000.0f;
         if (!m_remotePhones.isEmpty()) {
             for (RemotePhoneInfo remotePhoneInfo : m_remotePhones) {
@@ -653,14 +661,14 @@ public class DrawView extends View {
                 double dist = Math.sqrt(Math.pow((x - pointX), 2) + Math.pow((y - pointY), 2));
                 if (dist < (m_remotePhoneRadius + m_ballRadius)){
                     if (dist < rate) {
-                        receiverId = remotePhoneInfo.m_id;
+                        receiverName = remotePhoneInfo.m_name;
                         rate = (float)dist;
                     }
                 }
             }
         }
 
-        return receiverId;
+        return receiverName;
     }
 
     public void addBall() {
@@ -712,18 +720,18 @@ public class DrawView extends View {
         Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
     }
 
-    public void sendBall(Ball ball, String receiverId) {
+    public void sendBall(Ball ball, String receiverName) {
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put("ballId", ball.m_id);
             jsonObject.put("ballColor", ball.m_ballColor);
-            jsonObject.put("receiverId", receiverId);
+            jsonObject.put("receiverName", receiverName);
             jsonObject.put("x", 0.0f);
             jsonObject.put("y", 0.0f);
             jsonObject.put("z", m_angle);
             jsonObject.put("isSendingBall", true);
             jsonObject.put("color", m_color);
-            jsonObject.put("id", m_id);
+            jsonObject.put("name", m_name);
         } catch (JSONException e){
             e.printStackTrace();
         }
@@ -740,7 +748,7 @@ public class DrawView extends View {
             msg.put("x", 0.0f);
             msg.put("y", 0.0f);
             msg.put("z", m_angle);
-            msg.put("id", m_id);
+            msg.put("name", m_name);
             msg.put("color", m_color);
             msg.put("isSendingBall", false);
         } catch (JSONException e){
@@ -753,8 +761,8 @@ public class DrawView extends View {
         }
     }
 
-    public void updateRemotePhone(String id, int color, float angle){
-        if (id.equalsIgnoreCase(m_id)) {
+    public void updateRemotePhone(String name, int color, float angle){
+        if (name.isEmpty() || name.equalsIgnoreCase(m_name)) {
             return;
         }
 
@@ -762,7 +770,7 @@ public class DrawView extends View {
         boolean isFound = false;
         for (int i = 0; i<size; ++i) {
             RemotePhoneInfo info = m_remotePhones.get(i);
-            if (info.m_id.equalsIgnoreCase(id)) {
+            if (info.m_name.equalsIgnoreCase(name)) {
                 info.m_color = color;
                 info.m_angle = angle;
                 isFound = true;
@@ -772,7 +780,7 @@ public class DrawView extends View {
 
         if (!isFound) {
             RemotePhoneInfo info = new RemotePhoneInfo();
-            info.m_id = id;
+            info.m_name = name;
             info.m_color = color;
             info.m_angle = angle;
             m_remotePhones.add(info);
@@ -795,10 +803,6 @@ public class DrawView extends View {
 
     public void removePhones(ArrayList<RemotePhoneInfo> phoneInfos) {
         m_remotePhones.removeAll(phoneInfos);
-    }
-
-    public String getPhoneId() {
-        return m_id;
     }
 
     public void clearRemotePhoneInfo() {
@@ -824,6 +828,8 @@ public class DrawView extends View {
 
         resetBlock();
 
+        m_logger = new MainLogger(getContext(), m_id + "_" + m_name + "_" + getResources().getString(R.string.app_name));
+
         ((CustomActivity)getContext()).runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -844,6 +850,10 @@ public class DrawView extends View {
         return name;
     }
 
+    public boolean isFinished() {
+        return m_currentBlock == m_maxBlocks;
+    }
+
     public void nextBlock() {
         ((CustomActivity)getContext()).setStartButtonEnabled(true);
         ((CustomActivity)getContext()).setContinueButtonEnabled(false);
@@ -854,13 +864,16 @@ public class DrawView extends View {
         m_ballNames.clear();
         for (RemotePhoneInfo remotePhoneInfo : m_remotePhones){
             for(int i=0; i<3; i++){
-                m_ballNames.add(remotePhoneInfo.m_id);
+                m_ballNames.add(remotePhoneInfo.m_name);
             }
         }
 
         // reset self color
         Random rnd = new Random();
         m_color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+
+        m_numberOfDrops = 0;
+        m_numberOfErrors = 0;
     }
 
     public void startBlock() {
@@ -872,25 +885,42 @@ public class DrawView extends View {
     }
 
     public void endBlock() {
-        if (m_currentBlock < m_maxBlocks) {
-            ((CustomActivity) getContext()).setContinueButtonEnabled(true);
+        if (isFinished() && (m_logger != null)) {
+            m_logger.close();
         }
+
+        ((CustomActivity) getContext()).setContinueButtonEnabled(true);
+
         m_currentTrail = 0;
     }
 
     public void startTrial() {
-        addBall();
         m_trailStartTime = System.currentTimeMillis();
         m_currentTrail += 1;
+        m_numberOfErrors = 0;
+        m_numberOfDrops = 0;
+        addBall();
     }
 
     public void endTrail() {
         long timeElapse = System.currentTimeMillis() - m_trailStartTime;
 
+        // <participantID> <condition> <block#> <trial#> <elapsed time for this trial> <number of drops for this trial> <number of errors for this trial>
+
+        if (m_logger != null) {
+            m_logger.write(m_id + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + timeElapse + "," + m_numberOfDrops + "," + m_numberOfErrors, (m_currentBlock == 1 && m_currentTrail == 1));
+        }
+
         if (m_currentTrail < m_maxTrails) {
             startTrial();
         } else {
             endBlock();
+        }
+    }
+
+    public void closeLogger() {
+        if (m_logger != null) {
+            m_logger.close();
         }
     }
     /**

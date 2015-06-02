@@ -8,8 +8,10 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -110,6 +112,18 @@ public class CustomActivity extends AndARActivity {
         }
     };
 
+    private static boolean m_isExit = false;
+
+    Handler m_exitHandler = new Handler() {
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            m_isExit = false;
+        }
+
+    };
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		
@@ -137,7 +151,7 @@ public class CustomActivity extends AndARActivity {
         Intent intent = this.getIntent();
         Bundle bundle = intent.getExtras();
         m_userName = bundle.getString("user");
-        m_userId = bundle.getString("id");
+        m_userId = "P" + bundle.getString("id");
 
         setTitle(m_userId + " : " + m_userName);
 
@@ -154,8 +168,15 @@ public class CustomActivity extends AndARActivity {
         m_startBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (m_drawView != null && m_drawView.getBallCount() == 0)
-                    m_drawView.startBlock();
+                if (m_drawView != null && m_drawView.getBallCount() == 0) {
+                    if (!m_drawView.isFinished()) {
+                        m_drawView.startBlock();
+                    }
+                    else {
+                        finish();
+                        System.exit(0);
+                    }
+                }
             }
         });
 
@@ -183,8 +204,13 @@ public class CustomActivity extends AndARActivity {
         m_continueBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (m_drawView != null && m_drawView.getBallCount() == 0)
-                    m_drawView.nextBlock();
+                if (m_drawView != null && m_drawView.getBallCount() == 0) {
+                    if (!m_drawView.isFinished()) {
+                        m_drawView.nextBlock();
+                    } else {
+                        showDoneButton();
+                    }
+                }
             }
         });
 
@@ -247,6 +273,12 @@ public class CustomActivity extends AndARActivity {
         m_continueBtn.setEnabled(enabled);
     }
 
+    public void showDoneButton() {
+        setContinueButtonEnabled(false);
+        m_startBtn.setText("Done");
+        m_startBtn.setEnabled(true);
+    }
+
     /**
      * experiment end
      */
@@ -275,6 +307,28 @@ public class CustomActivity extends AndARActivity {
     protected void onDestroy() {
         stopThreads();
         super.onDestroy();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            exit();
+            return false;
+        } else {
+            return super.onKeyDown(keyCode, event);
+        }
+    }
+
+    private void exit() {
+        if (!m_isExit) {
+            m_isExit = true;
+            Toast.makeText(getApplicationContext(), "press back key again to exit", Toast.LENGTH_SHORT).show();
+            m_exitHandler.sendEmptyMessageDelayed(0, 2000);
+        } else {
+            m_drawView.closeLogger();
+            finish();
+            System.exit(0);
+        }
     }
 
     private void stopThreads() {
@@ -368,8 +422,12 @@ public class CustomActivity extends AndARActivity {
         }
     }
 
-    public String getBTName() {
+    public String getUserName() {
         return m_userName;
+    }
+
+    public String getUserId() {
+        return m_userId;
     }
 
     private class ConnectedThread extends Thread {
@@ -594,23 +652,23 @@ public class CustomActivity extends AndARActivity {
 
             int len = jsonArray.length();
 
-            ArrayList<String> ids = new ArrayList<>();
+            ArrayList<String> names = new ArrayList<>();
 
             for (int i=0; i<len; ++i) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
 
-                final String senderId = jsonObject.getString("id");
+                final String senderName = jsonObject.getString("name");
                 int senderColor = jsonObject.getInt("color");
                 float senderAngle = (float) jsonObject.getDouble("z");
 
                 if (m_drawView != null) {
-                    m_drawView.updateRemotePhone(senderId, senderColor, senderAngle);
+                    m_drawView.updateRemotePhone(senderName, senderColor, senderAngle);
                 }
 
                 boolean isSendingBall = jsonObject.getBoolean("isSendingBall");
                 if (isSendingBall && m_drawView != null) {
-                    String receiverId = jsonObject.getString("receiverId");
-                    if (receiverId.equalsIgnoreCase(m_drawView.getPhoneId())) {
+                    String receiverName = jsonObject.getString("receiverName");
+                    if (receiverName.equalsIgnoreCase(m_userName)) {
                         String ballId = jsonObject.getString("ballId");
                         int ballColor = jsonObject.getInt("ballColor");
                         m_drawView.receivedBall(ballId, ballColor);
@@ -618,19 +676,19 @@ public class CustomActivity extends AndARActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                showToast("received ball from : " + senderId);
+                                showToast("received ball from : " + senderName);
                             }
                         });
                     }
                 }
 
-                ids.add(senderId);
+                names.add(senderName);
             }
 
             ArrayList<DrawView.RemotePhoneInfo> remotePhoneInfos = m_drawView.getRemotePhones();
             ArrayList<DrawView.RemotePhoneInfo> lostPhoneInfos = new ArrayList<>();
             for (DrawView.RemotePhoneInfo phoneInfo : remotePhoneInfos) {
-                if (!ids.contains(phoneInfo.m_id)) {
+                if (!names.contains(phoneInfo.m_name)) {
                     lostPhoneInfos.add(phoneInfo);
                 }
             }
