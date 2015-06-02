@@ -559,7 +559,7 @@ public class DrawView extends View {
                             String name = isSending(ball.m_ballX, ball.m_ballY);
                             if (!ball.m_name.isEmpty() && !name.isEmpty()) {
                                 if (name.equalsIgnoreCase(ball.m_name)) {
-                                    ((CustomActivity) getContext()).showToast("send ball to : " + name);
+                                    //((CustomActivity) getContext()).showToast("send ball to : " + name);
                                     //sendBall(ball, id);
                                     removeBall(ball.m_id);
                                     this.invalidate();
