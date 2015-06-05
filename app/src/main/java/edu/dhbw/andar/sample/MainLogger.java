@@ -17,7 +17,7 @@ public class MainLogger {
     private BufferedWriter m_bufferedWriter;
 
     public MainLogger(Context context, String fileName) {
-        String SUFFIX = ".csv";
+        String SUFFIX = ".txt";
         Calendar calendar = Calendar.getInstance();
         String year = String.valueOf(calendar.get(Calendar.YEAR));
         String month = String.valueOf(calendar.get(Calendar.MONTH) + 1);
