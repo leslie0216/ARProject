@@ -30,6 +30,11 @@ public class DrawView extends View {
 
     private int m_color;
 
+    private static final int m_textSize = 30;
+    private static final int m_messageTextSize = 50;
+    private static final int m_textStrokeWidth = 2;
+    private static final int m_boundaryStrokeWidth = 10;
+
     private String m_message;
 
     private float m_x, m_y, m_z;
@@ -46,7 +51,7 @@ public class DrawView extends View {
         public String m_name;
     }
 
-    private static final float m_ballRadius = 50.0f;
+    private float m_ballRadius;
     private float m_ballBornX;
     private float m_ballBornY;
 
@@ -81,6 +86,7 @@ public class DrawView extends View {
         @Override
         public void run() {
             setShowRemoteNames(true);
+            m_numberOfLongPress++;
             invalidate();
         }
     };
@@ -92,12 +98,19 @@ public class DrawView extends View {
     private long m_trailStartTime;
     private int m_numberOfDrops;
     private int m_numberOfErrors;
+    private int m_numberOfTouch;
+    private int m_numberOfTouchBall;
+    private int m_numberOfLongPress;
+    private int m_numberOfRelease;
     private int m_maxBlocks;
     private int m_maxTrails;
     private int m_currentBlock;
     private int m_currentTrail;
     private static final int m_experimentPhoneNumber = 3;
     private MainLogger m_logger;
+    private MainLogger m_angleLogger;
+    private MainLogger m_matrixLogger;
+    private boolean m_isStarted;
     /**
      * experiment end
      */
@@ -133,9 +146,14 @@ public class DrawView extends View {
         m_remotePhoneRadius = displayMetrics.heightPixels * 0.05f;
 
         setShowRemoteNames(false);
+
+        resetCounters();
+
+        m_isStarted = false;
     }
 
     private void initBallBornPoints(DisplayMetrics displayMetrics) {
+        m_ballRadius = displayMetrics.heightPixels * 0.08f;
         m_ballBornX = displayMetrics.widthPixels * 0.5f;
         m_ballBornY = displayMetrics.heightPixels * 0.9f - m_ballRadius * 2.0f;
     }
@@ -184,10 +202,26 @@ public class DrawView extends View {
         }
 
         calculateAngle();
+
+        long timestamp = System.currentTimeMillis();
+
+        if (m_isStarted) {
+            // log angle
+            if (m_angleLogger != null) {
+                //<participantID> <condition> <block#> <trial#> <angle> <timestamp>
+                m_angleLogger.write(m_id + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_angle + "," + timestamp, false);
+            }
+
+            // log matrix
+            //<participantID> <condition> <block#> <trial#> <M00> <M01> <M02> <M03> <M10> <M11> <M12> <M13> <M20> <M21> <M22> <M23> <M30> <M31> <M32> <M33> <timestamp>
+            if (m_matrixLogger != null) {
+                m_matrixLogger.write(m_id + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_glMatrix[0] + "," + m_glMatrix[4] + "," + m_glMatrix[8] + "," + m_glMatrix[12] + "," + m_glMatrix[1] + "," + m_glMatrix[5] + "," + m_glMatrix[9] + "," + m_glMatrix[13] + "," + m_glMatrix[2] + "," + m_glMatrix[6] + "," + m_glMatrix[10] + "," + m_glMatrix[14] + "," + m_glMatrix[3] + "," + m_glMatrix[7] + "," + m_glMatrix[11] + "," + m_glMatrix[15] + "," + timestamp, false);
+            }
+        }
     }
 
     public void showGlMatrix(Canvas canvas) {
-        m_paint.setTextSize(50);
+        m_paint.setTextSize(m_textSize);
         m_paint.setColor(Color.RED);
         String output = String.format("%.4f", m_glMatrix[0]) + " " + String.format("%.4f", m_glMatrix[4]) + " " + String.format("%.4f", m_glMatrix[8]) + " " + String.format("%.4f", m_glMatrix[12]);
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
@@ -201,7 +235,7 @@ public class DrawView extends View {
     }
 
     public void showGlTranslation(Canvas canvas) {
-        m_paint.setTextSize(50);
+        m_paint.setTextSize(m_textSize);
         m_paint.setColor(Color.RED);
         float dist = (float)Math.sqrt(m_glMatrix[12] * m_glMatrix[12] + m_glMatrix[13] * m_glMatrix[13] + m_glMatrix[14] * m_glMatrix[14]);
         String output = "X=" + String.format("%.4f", m_glMatrix[12]) + " Y=" + String.format("%.4f", m_glMatrix[13]) + " Z=" + String.format("%.4f", m_glMatrix[14]) + " dist=" + String.format("%.4f", dist);
@@ -265,7 +299,7 @@ public class DrawView extends View {
         float bottom = displayMetrics.heightPixels * 0.9f + m_localCoordinateRadius;
         RectF disRect = new RectF(left, top, right, bottom);
 
-        m_paint.setStrokeWidth(10);
+        m_paint.setStrokeWidth(m_boundaryStrokeWidth);
         canvas.drawArc(disRect, 180.0f, 180.0f, false, m_paint);
 
         CustomActivity customActivity = (CustomActivity)getContext();
@@ -275,10 +309,10 @@ public class DrawView extends View {
     }
 
     public void showLocalAngle(Canvas canvas) {
-        m_paint.setTextSize(30);
+        m_paint.setTextSize(m_textSize);
         m_paint.setColor(Color.RED);
         m_paint.setStyle(Paint.Style.FILL_AND_STROKE);
-        m_paint.setStrokeWidth(2);
+        m_paint.setStrokeWidth(m_textStrokeWidth);
 
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
         canvas.drawText("angle : " + String.format("%.4f", m_angle), displayMetrics.widthPixels * 0.1f, displayMetrics.heightPixels * 0.95f, m_paint);
@@ -297,8 +331,8 @@ public class DrawView extends View {
                 canvas.drawCircle(pointX, pointY, m_remotePhoneRadius, m_paint);
 
                 if (getShowRemoteNames()) {
-                    m_paint.setTextSize(30);
-                    m_paint.setStrokeWidth(2);
+                    m_paint.setTextSize(m_textSize);
+                    m_paint.setStrokeWidth(m_textStrokeWidth);
                     float textX = pointX - m_remotePhoneRadius;
                     float textY = pointY - m_remotePhoneRadius * 1.5f;
                     if (info.m_name.length() > 5) {
@@ -321,9 +355,9 @@ public class DrawView extends View {
     }
 
     public void showMessage(Canvas canvas) {
-        m_paint.setTextSize(30);
+        m_paint.setTextSize(m_textSize);
         m_paint.setColor(Color.GREEN);
-        m_paint.setStrokeWidth(2);
+        m_paint.setStrokeWidth(m_textStrokeWidth);
         m_paint.setStyle(Paint.Style.FILL_AND_STROKE);
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
         canvas.drawText(m_message, displayMetrics.widthPixels * 0.5f, displayMetrics.heightPixels * 0.95f, m_paint);
@@ -338,7 +372,7 @@ public class DrawView extends View {
             /**
              * experiment begin
              */
-            m_paint.setStrokeWidth(2);
+            m_paint.setStrokeWidth(m_textStrokeWidth);
             float textX = ball.m_ballX - m_ballRadius;
             float textY = ball.m_ballY - m_ballRadius;
             if (ball.m_name.length() > 5) {
@@ -353,7 +387,7 @@ public class DrawView extends View {
 
     public void showBoundary(Canvas canvas) {
         m_paint.setColor(Color.RED);
-        m_paint.setStrokeWidth(10);
+        m_paint.setStrokeWidth(m_boundaryStrokeWidth);
         m_paint.setStyle(Paint.Style.FILL_AND_STROKE);
 
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
@@ -443,10 +477,11 @@ public class DrawView extends View {
 
         float X = event.getX();
         float Y = event.getY();
-        float radius = event.getTouchMajor();
+        float touchRadius = event.getTouchMajor();
 
         switch (eventaction) {
             case MotionEvent.ACTION_DOWN:
+                m_numberOfTouch++;
                 m_touchedBallId = -1;
                 for (int i = 0; i < m_balls.size(); ++i){
                     Ball ball = m_balls.get(i);
@@ -454,7 +489,7 @@ public class DrawView extends View {
 
                     double dist;
                     dist = Math.sqrt(Math.pow((X - ball.m_ballX), 2) + Math.pow((Y - ball.m_ballY), 2));
-                    if (dist <= radius) {
+                    if (dist <= (touchRadius + m_ballRadius)) {
                         ball.m_isTouched = true;
                         m_touchedBallId = i;
 
@@ -494,7 +529,7 @@ public class DrawView extends View {
 
                         double dist = Math.sqrt(Math.pow((X - pointX),2) + Math.pow((Y - pointY), 2));
 
-                        if (dist <= (radius + m_remotePhoneRadius)) {
+                        if (dist <= (touchRadius + m_remotePhoneRadius)) {
                             show = true;
                             break;
                         }
@@ -503,10 +538,35 @@ public class DrawView extends View {
                     if (show) {
                         handler.postDelayed(mLongPressed, 1000);
                     }
+                } else {
+                    m_numberOfTouchBall++;
                 }
 
                 break;
             case MotionEvent.ACTION_MOVE:
+                if (getShowRemoteNames()) {
+                    boolean show = false;
+
+                    for (RemotePhoneInfo remotePhone : m_remotePhones) {
+                        float angle_remote = calculateRemoteAngle(remotePhone.m_angle);
+                        float pointX = m_localCoordinateCenterX + m_localCoordinateRadius * (float)Math.cos(Math.toRadians(angle_remote));
+                        float pointY = m_localCoordinateCenterY - m_localCoordinateRadius * (float)Math.sin(Math.toRadians(angle_remote));
+
+                        double dist = Math.sqrt(Math.pow((X - pointX),2) + Math.pow((Y - pointY), 2));
+
+                        if (dist <= (touchRadius + m_remotePhoneRadius)) {
+                            show = true;
+                            break;
+                        }
+                    }
+
+                    if (!show) {
+                        handler.removeCallbacks(mLongPressed);
+                        setShowRemoteNames(false);
+                        invalidate();
+                    }
+                }
+
                 if (m_touchedBallId > -1) {
                     Ball ball = m_balls.get(m_touchedBallId);
                     if (ball.m_isTouched) {
@@ -537,6 +597,8 @@ public class DrawView extends View {
                     setShowRemoteNames(false);
                     invalidate();
                 }
+
+                m_numberOfRelease++;
 
                 if (m_touchedBallId > -1) {
                     m_numberOfDrops += 1;
@@ -651,7 +713,7 @@ public class DrawView extends View {
 
     private String isSending(float x, float y) {
         String receiverName = "";
-        float rate = 1000.0f;
+        float rate = 10000.0f;
         if (!m_remotePhones.isEmpty()) {
             for (RemotePhoneInfo remotePhoneInfo : m_remotePhones) {
                 float angle_remote = calculateRemoteAngle(remotePhoneInfo.m_angle);
@@ -826,9 +888,21 @@ public class DrawView extends View {
         m_currentBlock = 0;
         m_currentTrail = 0;
 
+        m_isStarted = false;
+
         resetBlock();
 
         m_logger = new MainLogger(getContext(), m_id + "_" + m_name + "_" + getResources().getString(R.string.app_name));
+        //<participantID> <condition> <block#> <trial#> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
+        m_logger.writeHeaders("participantID" + "," + "condition" + "," + "block" + "," + "trial" + "," + "elapsedTime" + "," + "errors" + "," + "release" + "," + "drops" + "," + "touch" + "," + "touchBall" + "," + "longPress" + "," + "timestamp");
+
+        m_angleLogger = new MainLogger(getContext(), m_id+"_"+m_name+"_"+getResources().getString(R.string.app_name)+"_angle");
+        //<participantID> <condition> <block#> <trial#> <angle> <timestamp>
+        m_angleLogger.writeHeaders("participantID" + "," + "condition" + "," + "block" + "," + "trial" + "," + "angle" + "," + "timestamp");
+
+        m_matrixLogger = new MainLogger(getContext(), m_id+"_"+m_name+"_"+getResources().getString(R.string.app_name)+"_matrix");
+        //<participantID> <condition> <block#> <trial#> <M00> <M01> <M02> <M03> <M10> <M11> <M12> <M13> <M20> <M21> <M22> <M23> <M30> <M31> <M32> <M33> <timestamp>
+        m_matrixLogger.writeHeaders("participantID" + "," + "condition" + "," + "block" + "," + "trial" + "," + "M00" + "," + "M01" + "," + "M02" + "," + "M03" + "," + "M10" + "," + "M11" + "," + "M12" + "," + "M13" + "," + "M20" + "," + "M21" + "," + "M22" + "," + "M23" + "," + "M30" + "," + "M31" + "," + "M32" + "," + "M33" + "," + "timestamp");
 
         ((CustomActivity)getContext()).runOnUiThread(new Runnable() {
             @Override
@@ -872,21 +946,34 @@ public class DrawView extends View {
         Random rnd = new Random();
         m_color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
 
-        m_numberOfDrops = 0;
-        m_numberOfErrors = 0;
+        resetCounters();
     }
 
     public void startBlock() {
         m_currentBlock += 1;
         m_currentTrail = 0;
+        m_isStarted = true;
+
         resetBlock();
         startTrial();
         ((CustomActivity)getContext()).setStartButtonEnabled(false);
     }
 
     public void endBlock() {
-        if (isFinished() && (m_logger != null)) {
-            m_logger.close();
+        m_isStarted = false;
+
+        if (isFinished()) {
+            if (m_logger != null) {
+                m_logger.close();
+            }
+
+            if (m_angleLogger != null) {
+                m_angleLogger.close();
+            }
+
+            if (m_matrixLogger != null) {
+                m_matrixLogger.close();
+            }
         }
 
         ((CustomActivity) getContext()).setContinueButtonEnabled(true);
@@ -897,18 +984,26 @@ public class DrawView extends View {
     public void startTrial() {
         m_trailStartTime = System.currentTimeMillis();
         m_currentTrail += 1;
-        m_numberOfErrors = 0;
-        m_numberOfDrops = 0;
+
+        resetCounters();
         addBall();
     }
 
     public void endTrail() {
-        long timeElapse = System.currentTimeMillis() - m_trailStartTime;
+        long trailEndTime = System.currentTimeMillis();
+        long timeElapse = trailEndTime - m_trailStartTime;
 
-        // <participantID> <condition> <block#> <trial#> <elapsed time for this trial> <number of drops for this trial> <number of errors for this trial>
-
+        //<participantID> <condition> <block#> <trial#> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
         if (m_logger != null) {
-            m_logger.write(m_id + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + timeElapse + "," + m_numberOfDrops + "," + m_numberOfErrors, (m_currentBlock == 1 && m_currentTrail == 1));
+            m_logger.write(m_id + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + timeElapse + "," + m_numberOfErrors + "," + m_numberOfRelease + "," + m_numberOfDrops + "," + m_numberOfTouch + "," + m_numberOfTouchBall + "," + m_numberOfLongPress + "," + trailEndTime, true);
+        }
+
+        if (m_angleLogger != null) {
+            m_angleLogger.flush();
+        }
+
+        if (m_matrixLogger != null) {
+            m_matrixLogger.flush();
         }
 
         if (m_currentTrail < m_maxTrails) {
@@ -922,6 +1017,23 @@ public class DrawView extends View {
         if (m_logger != null) {
             m_logger.close();
         }
+
+        if (m_angleLogger != null) {
+            m_angleLogger.close();
+        }
+
+        if (m_matrixLogger != null) {
+            m_matrixLogger.flush();
+        }
+    }
+
+    private void resetCounters() {
+        m_numberOfDrops = 0;
+        m_numberOfErrors = 0;
+        m_numberOfTouch = 0;
+        m_numberOfTouchBall = 0;
+        m_numberOfLongPress = 0;
+        m_numberOfRelease = 0;
     }
     /**
      * experiment end
