@@ -208,14 +208,14 @@ public class DrawView extends View {
         if (m_isStarted) {
             // log angle
             if (m_angleLogger != null) {
-                //<participantID> <condition> <block#> <trial#> <angle> <timestamp>
-                m_angleLogger.write(m_id + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_angle + "," + timestamp, false);
+                //<participantID> <participantName> <condition> <block#> <trial#> <angle> <timestamp>
+                m_angleLogger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_angle + "," + timestamp, false);
             }
 
             // log matrix
-            //<participantID> <condition> <block#> <trial#> <M00> <M01> <M02> <M03> <M10> <M11> <M12> <M13> <M20> <M21> <M22> <M23> <M30> <M31> <M32> <M33> <timestamp>
+            //<participantID> <participantName> <condition> <block#> <trial#> <M00> <M01> <M02> <M03> <M10> <M11> <M12> <M13> <M20> <M21> <M22> <M23> <M30> <M31> <M32> <M33> <timestamp>
             if (m_matrixLogger != null) {
-                m_matrixLogger.write(m_id + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_glMatrix[0] + "," + m_glMatrix[4] + "," + m_glMatrix[8] + "," + m_glMatrix[12] + "," + m_glMatrix[1] + "," + m_glMatrix[5] + "," + m_glMatrix[9] + "," + m_glMatrix[13] + "," + m_glMatrix[2] + "," + m_glMatrix[6] + "," + m_glMatrix[10] + "," + m_glMatrix[14] + "," + m_glMatrix[3] + "," + m_glMatrix[7] + "," + m_glMatrix[11] + "," + m_glMatrix[15] + "," + timestamp, false);
+                m_matrixLogger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_glMatrix[0] + "," + m_glMatrix[4] + "," + m_glMatrix[8] + "," + m_glMatrix[12] + "," + m_glMatrix[1] + "," + m_glMatrix[5] + "," + m_glMatrix[9] + "," + m_glMatrix[13] + "," + m_glMatrix[2] + "," + m_glMatrix[6] + "," + m_glMatrix[10] + "," + m_glMatrix[14] + "," + m_glMatrix[3] + "," + m_glMatrix[7] + "," + m_glMatrix[11] + "," + m_glMatrix[15] + "," + timestamp, false);
             }
         }
     }
@@ -893,16 +893,16 @@ public class DrawView extends View {
         resetBlock();
 
         m_logger = new MainLogger(getContext(), m_id + "_" + m_name + "_" + getResources().getString(R.string.app_name));
-        //<participantID> <condition> <block#> <trial#> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
-        m_logger.writeHeaders("participantID" + "," + "condition" + "," + "block" + "," + "trial" + "," + "elapsedTime" + "," + "errors" + "," + "release" + "," + "drops" + "," + "touch" + "," + "touchBall" + "," + "longPress" + "," + "timestamp");
+        //<participantID> <participantName> <condition> <block#> <trial#> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
+        m_logger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "elapsedTime" + "," + "errors" + "," + "release" + "," + "drops" + "," + "touch" + "," + "touchBall" + "," + "longPress" + "," + "timestamp");
 
         m_angleLogger = new MainLogger(getContext(), m_id+"_"+m_name+"_"+getResources().getString(R.string.app_name)+"_angle");
-        //<participantID> <condition> <block#> <trial#> <angle> <timestamp>
-        m_angleLogger.writeHeaders("participantID" + "," + "condition" + "," + "block" + "," + "trial" + "," + "angle" + "," + "timestamp");
+        //<participantID> <participantName> <condition> <block#> <trial#> <angle> <timestamp>
+        m_angleLogger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "angle" + "," + "timestamp");
 
         m_matrixLogger = new MainLogger(getContext(), m_id+"_"+m_name+"_"+getResources().getString(R.string.app_name)+"_matrix");
-        //<participantID> <condition> <block#> <trial#> <M00> <M01> <M02> <M03> <M10> <M11> <M12> <M13> <M20> <M21> <M22> <M23> <M30> <M31> <M32> <M33> <timestamp>
-        m_matrixLogger.writeHeaders("participantID" + "," + "condition" + "," + "block" + "," + "trial" + "," + "M00" + "," + "M01" + "," + "M02" + "," + "M03" + "," + "M10" + "," + "M11" + "," + "M12" + "," + "M13" + "," + "M20" + "," + "M21" + "," + "M22" + "," + "M23" + "," + "M30" + "," + "M31" + "," + "M32" + "," + "M33" + "," + "timestamp");
+        //<participantID> <participantName> <condition> <block#> <trial#> <M00> <M01> <M02> <M03> <M10> <M11> <M12> <M13> <M20> <M21> <M22> <M23> <M30> <M31> <M32> <M33> <timestamp>
+        m_matrixLogger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "M00" + "," + "M01" + "," + "M02" + "," + "M03" + "," + "M10" + "," + "M11" + "," + "M12" + "," + "M13" + "," + "M20" + "," + "M21" + "," + "M22" + "," + "M23" + "," + "M30" + "," + "M31" + "," + "M32" + "," + "M33" + "," + "timestamp");
 
         ((CustomActivity)getContext()).runOnUiThread(new Runnable() {
             @Override
@@ -993,9 +993,9 @@ public class DrawView extends View {
         long trailEndTime = System.currentTimeMillis();
         long timeElapse = trailEndTime - m_trailStartTime;
 
-        //<participantID> <condition> <block#> <trial#> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
+        //<participantID> <participantName> <condition> <block#> <trial#> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
         if (m_logger != null) {
-            m_logger.write(m_id + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + timeElapse + "," + m_numberOfErrors + "," + m_numberOfRelease + "," + m_numberOfDrops + "," + m_numberOfTouch + "," + m_numberOfTouchBall + "," + m_numberOfLongPress + "," + trailEndTime, true);
+            m_logger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + timeElapse + "," + m_numberOfErrors + "," + m_numberOfRelease + "," + m_numberOfDrops + "," + m_numberOfTouch + "," + m_numberOfTouchBall + "," + m_numberOfLongPress + "," + trailEndTime, true);
         }
 
         if (m_angleLogger != null) {
