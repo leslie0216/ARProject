@@ -1,6 +1,8 @@
 package edu.dhbw.andar.sample;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -30,7 +32,7 @@ public class DrawView extends View {
 
     private int m_color;
 
-    private static final int m_textSize = 30;
+    private static final int m_textSize = 50;
     private static final int m_messageTextSize = 50;
     private static final int m_textStrokeWidth = 2;
     private static final int m_boundaryStrokeWidth = 10;
@@ -184,6 +186,7 @@ public class DrawView extends View {
         showBalls(canvas);
         showBoundary(canvas);
         showLocalAngle(canvas);
+        showProgress(canvas);
     }
 
     public void setMessage (String msg) {
@@ -361,7 +364,7 @@ public class DrawView extends View {
         m_paint.setStrokeWidth(m_textStrokeWidth);
         m_paint.setStyle(Paint.Style.FILL_AND_STROKE);
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
-        canvas.drawText(m_message, displayMetrics.widthPixels * 0.5f, displayMetrics.heightPixels * 0.95f, m_paint);
+        canvas.drawText(m_message, displayMetrics.widthPixels * 0.4f, displayMetrics.heightPixels * 0.95f, m_paint);
     }
 
     public void showBalls(Canvas canvas) {
@@ -393,6 +396,20 @@ public class DrawView extends View {
 
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
         canvas.drawLine(0, displayMetrics.heightPixels * 0.9f, displayMetrics.widthPixels, displayMetrics.heightPixels * 0.9f, m_paint);
+    }
+
+    public void showProgress(Canvas canvas) {
+        m_paint.setTextSize(m_textSize);
+        m_paint.setColor(Color.BLUE);
+        m_paint.setStrokeWidth(m_textStrokeWidth);
+        m_paint.setStyle(Paint.Style.FILL_AND_STROKE);
+        DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
+
+        String block = "Block: " + m_currentBlock +"/" + m_maxBlocks;
+        canvas.drawText(block, (int) (displayMetrics.widthPixels * 0.65), (int) (displayMetrics.heightPixels * 0.95), m_paint);
+
+        String trial = "Trial: " + m_currentTrail +"/" + m_maxTrails;
+        canvas.drawText(trial, (int) (displayMetrics.widthPixels * 0.8), (int) (displayMetrics.heightPixels * 0.95), m_paint);
     }
 
     private Quadrant calculateAngle() {
@@ -909,6 +926,7 @@ public class DrawView extends View {
             @Override
             public void run() {
                 ((CustomActivity) getContext()).setStartButtonEnabled(true);
+                ((CustomActivity) getContext()).setContinueButtonEnabled(false);
             }
         });
     }
@@ -958,27 +976,24 @@ public class DrawView extends View {
         resetBlock();
         startTrial();
         ((CustomActivity)getContext()).setStartButtonEnabled(false);
+        ((CustomActivity)getContext()).setContinueButtonEnabled(false);
     }
 
     public void endBlock() {
         m_isStarted = false;
 
         if (isFinished()) {
-            if (m_logger != null) {
-                m_logger.close();
-            }
-
-            if (m_angleLogger != null) {
-                m_angleLogger.close();
-            }
-
-            if (m_matrixLogger != null) {
-                m_matrixLogger.close();
-            }
+            closeLogger();
         }
 
-        ((CustomActivity) getContext()).setContinueButtonEnabled(true);
+        new AlertDialog.Builder(getContext()).setTitle("Warning").setMessage("You have completed block " + m_currentBlock + ", please wait for other participants.").setNeutralButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        }).show();
 
+        ((CustomActivity)getContext()).setContinueButtonEnabled(true);
+        ((CustomActivity)getContext()).setStartButtonEnabled(false);
         m_currentTrail = 0;
     }
 
@@ -993,6 +1008,14 @@ public class DrawView extends View {
     public void endTrail() {
         long trailEndTime = System.currentTimeMillis();
         long timeElapse = trailEndTime - m_trailStartTime;
+
+        if (m_currentBlock == 0) {
+            ++m_currentBlock;
+        }
+
+        if (m_currentTrail == 0) {
+            ++m_currentTrail;
+        }
 
         //<participantID> <participantName> <condition> <block#> <trial#> <receiver name> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
         if (m_logger != null) {

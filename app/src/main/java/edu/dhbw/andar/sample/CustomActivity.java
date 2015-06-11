@@ -163,6 +163,7 @@ public class CustomActivity extends AndARActivity {
                         m_drawView.startBlock();
                     }
                     else {
+                        m_drawView.closeLogger();
                         finish();
                         System.exit(0);
                     }
