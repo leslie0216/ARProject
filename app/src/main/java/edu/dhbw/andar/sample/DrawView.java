@@ -114,6 +114,7 @@ public class DrawView extends View {
     private MainLogger m_angleLogger;
     private MainLogger m_matrixLogger;
     private boolean m_isStarted;
+    private boolean m_isExperimentInitialised;
     /**
      * experiment end
      */
@@ -153,6 +154,8 @@ public class DrawView extends View {
         resetCounters();
 
         m_isStarted = false;
+
+        m_isExperimentInitialised = false;
     }
 
     private void initBallBornPoints(DisplayMetrics displayMetrics) {
@@ -868,7 +871,7 @@ public class DrawView extends View {
             /**
              * experiment end
              */
-            if (m_remotePhones.size() == m_experimentPhoneNumber) {
+            if (m_remotePhones.size() == m_experimentPhoneNumber && !m_isExperimentInitialised) {
                 initExperiment();
             }
             /**
@@ -897,6 +900,8 @@ public class DrawView extends View {
      * experiment begin
      */
     private void initExperiment() {
+        m_isExperimentInitialised = true;
+
         // init ball names
         m_ballNames = new ArrayList<>();
 
