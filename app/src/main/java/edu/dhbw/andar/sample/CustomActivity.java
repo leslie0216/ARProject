@@ -10,7 +10,6 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -44,6 +43,7 @@ public class CustomActivity extends AndARActivity {
 
     private String m_userName;
     private String m_userId;
+    private int m_userColor;
 
     /** BT begin
      */
@@ -140,8 +140,15 @@ public class CustomActivity extends AndARActivity {
 
         Intent intent = this.getIntent();
         Bundle bundle = intent.getExtras();
-        m_userName = bundle.getString("user");
-        m_userId = bundle.getString("id");
+        if (bundle.containsKey("user")) {
+            m_userName = bundle.getString("user");
+        }
+        if (bundle.containsKey("id")) {
+            m_userId = bundle.getString("id");
+        }
+        if (bundle.containsKey("color")) {
+            m_userColor = bundle.getInt("color");
+        }
 
         setTitle(m_userId + " : " + m_userName + " - " + getResources().getString(R.string.app_name));
 
@@ -425,6 +432,8 @@ public class CustomActivity extends AndARActivity {
     public String getUserId() {
         return m_userId;
     }
+
+    public int getUserColor() {return m_userColor;}
 
     private class ConnectedThread extends Thread {
         public ConnectedThread() {

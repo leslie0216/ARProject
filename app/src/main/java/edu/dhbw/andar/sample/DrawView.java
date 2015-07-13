@@ -32,7 +32,7 @@ public class DrawView extends View {
 
     private int m_color;
 
-    private static final int m_textSize = 50;
+    private static final int m_textSize = 70;
     private static final int m_messageTextSize = 50;
     private static final int m_textStrokeWidth = 2;
     private static final int m_boundaryStrokeWidth = 10;
@@ -140,8 +140,9 @@ public class DrawView extends View {
 
         m_id = ((CustomActivity)(context)).getUserId();
         m_name = ((CustomActivity)(context)).getUserName();
-        Random rnd = new Random();
-        m_color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+        //Random rnd = new Random();
+        //m_color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+        m_color = ((CustomActivity)(context)).getUserColor();
 
         m_localCoordinateCenterX = displayMetrics.widthPixels * 0.5f;
         m_localCoordinateCenterY = displayMetrics.heightPixels * 0.9f;
@@ -189,7 +190,7 @@ public class DrawView extends View {
         showBalls(canvas);
         showBoundary(canvas);
         showLocalAngle(canvas);
-        showProgress(canvas);
+        //showProgress(canvas);
     }
 
     public void setMessage (String msg) {
@@ -216,13 +217,13 @@ public class DrawView extends View {
             // log angle
             if (m_angleLogger != null) {
                 //<participantID> <participantName> <condition> <block#> <trial#> <angle> <timestamp>
-                m_angleLogger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_angle + "," + timestamp, false);
+                //m_angleLogger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_angle + "," + timestamp, false);
             }
 
             // log matrix
             //<participantID> <participantName> <condition> <block#> <trial#> <M00> <M01> <M02> <M03> <M10> <M11> <M12> <M13> <M20> <M21> <M22> <M23> <M30> <M31> <M32> <M33> <timestamp>
             if (m_matrixLogger != null) {
-                m_matrixLogger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_glMatrix[0] + "," + m_glMatrix[4] + "," + m_glMatrix[8] + "," + m_glMatrix[12] + "," + m_glMatrix[1] + "," + m_glMatrix[5] + "," + m_glMatrix[9] + "," + m_glMatrix[13] + "," + m_glMatrix[2] + "," + m_glMatrix[6] + "," + m_glMatrix[10] + "," + m_glMatrix[14] + "," + m_glMatrix[3] + "," + m_glMatrix[7] + "," + m_glMatrix[11] + "," + m_glMatrix[15] + "," + timestamp, false);
+                //m_matrixLogger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_glMatrix[0] + "," + m_glMatrix[4] + "," + m_glMatrix[8] + "," + m_glMatrix[12] + "," + m_glMatrix[1] + "," + m_glMatrix[5] + "," + m_glMatrix[9] + "," + m_glMatrix[13] + "," + m_glMatrix[2] + "," + m_glMatrix[6] + "," + m_glMatrix[10] + "," + m_glMatrix[14] + "," + m_glMatrix[3] + "," + m_glMatrix[7] + "," + m_glMatrix[11] + "," + m_glMatrix[15] + "," + timestamp, false);
             }
         }
     }
@@ -232,13 +233,18 @@ public class DrawView extends View {
         m_paint.setColor(Color.RED);
         String output = String.format("%.4f", m_glMatrix[0]) + " " + String.format("%.4f", m_glMatrix[4]) + " " + String.format("%.4f", m_glMatrix[8]) + " " + String.format("%.4f", m_glMatrix[12]);
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
-        canvas.drawText(output, 50.0f, displayMetrics.heightPixels - 145.0f, m_paint);
+        canvas.drawText(output, 50.0f, displayMetrics.heightPixels * 0.65f, m_paint);
 
         String output2 = String.format("%.4f", m_glMatrix[1]) + " " + String.format("%.4f", m_glMatrix[5]) + " " + String.format("%.4f", m_glMatrix[9]) + " " + String.format("%.4f", m_glMatrix[13]);
-        canvas.drawText(output2, 50.0f, displayMetrics.heightPixels - 85.0f, m_paint);
+        canvas.drawText(output2, 50.0f, displayMetrics.heightPixels  * 0.72f, m_paint);
 
         String output3 = String.format("%.4f", m_glMatrix[2]) + " " + String.format("%.4f", m_glMatrix[6]) + " " + String.format("%.4f", m_glMatrix[10]) + " " + String.format("%.4f", m_glMatrix[14]);
-        canvas.drawText(output3, 50.0f, displayMetrics.heightPixels - 25.0f, m_paint);
+        canvas.drawText(output3, 50.0f, displayMetrics.heightPixels * 0.79f, m_paint);
+
+        double bn = Math.toDegrees(Math.acos(Math.abs(m_glMatrix[9])));
+        double an = 90.0*(1- Math.abs(m_glMatrix[9]));
+        String output4 = String.format("%.4f", an) + " " + String.format("%.4f", bn);
+        canvas.drawText(output4, displayMetrics.widthPixels * 0.5f, displayMetrics.heightPixels * 0.79f, m_paint);
     }
 
     public void showGlTranslation(Canvas canvas) {
@@ -316,7 +322,7 @@ public class DrawView extends View {
     }
 
     public void showLocalAngle(Canvas canvas) {
-        m_paint.setTextSize(m_textSize);
+        m_paint.setTextSize(m_messageTextSize);
         m_paint.setColor(Color.RED);
         m_paint.setStyle(Paint.Style.FILL_AND_STROKE);
         m_paint.setStrokeWidth(m_textStrokeWidth);
@@ -362,7 +368,7 @@ public class DrawView extends View {
     }
 
     public void showMessage(Canvas canvas) {
-        m_paint.setTextSize(m_textSize);
+        m_paint.setTextSize(m_messageTextSize);
         m_paint.setColor(Color.GREEN);
         m_paint.setStrokeWidth(m_textStrokeWidth);
         m_paint.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -380,6 +386,7 @@ public class DrawView extends View {
              * experiment begin
              */
             m_paint.setStrokeWidth(m_textStrokeWidth);
+            m_paint.setTextSize(m_textSize);
             float textX = ball.m_ballX - m_ballRadius;
             float textY = ball.m_ballY - m_ballRadius;
             if (ball.m_name.length() > 5) {
@@ -557,7 +564,7 @@ public class DrawView extends View {
                     }
 
                     if (show) {
-                        handler.postDelayed(mLongPressed, 1000);
+                        handler.postDelayed(mLongPressed, 500);
                     }
                 } else {
                     m_numberOfTouchBall++;
@@ -915,17 +922,20 @@ public class DrawView extends View {
 
         resetBlock();
 
-        m_logger = new MainLogger(getContext(), m_id + "_" + m_name + "_" + getResources().getString(R.string.app_name));
+        m_logger = null;
+        //m_logger = new MainLogger(getContext(), m_id + "_" + m_name + "_" + getResources().getString(R.string.app_name));
         //<participantID> <participantName> <condition> <block#> <trial#> <receiver name> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
-        m_logger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "receiverName" + "," + "elapsedTime" + "," + "errors" + "," + "release" + "," + "drops" + "," + "touch" + "," + "touchBall" + "," + "longPress" + "," + "timestamp");
+        //m_logger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "receiverName" + "," + "elapsedTime" + "," + "errors" + "," + "release" + "," + "drops" + "," + "touch" + "," + "touchBall" + "," + "longPress" + "," + "timestamp");
 
-        m_angleLogger = new MainLogger(getContext(), m_id+"_"+m_name+"_"+getResources().getString(R.string.app_name)+"_angle");
+        m_angleLogger = null;
+        //m_angleLogger = new MainLogger(getContext(), m_id+"_"+m_name+"_"+getResources().getString(R.string.app_name)+"_angle");
         //<participantID> <participantName> <condition> <block#> <trial#> <angle> <timestamp>
-        m_angleLogger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "angle" + "," + "timestamp");
+        //m_angleLogger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "angle" + "," + "timestamp");
 
-        m_matrixLogger = new MainLogger(getContext(), m_id+"_"+m_name+"_"+getResources().getString(R.string.app_name)+"_matrix");
+        m_matrixLogger = null;
+        //m_matrixLogger = new MainLogger(getContext(), m_id+"_"+m_name+"_"+getResources().getString(R.string.app_name)+"_matrix");
         //<participantID> <participantName> <condition> <block#> <trial#> <M00> <M01> <M02> <M03> <M10> <M11> <M12> <M13> <M20> <M21> <M22> <M23> <M30> <M31> <M32> <M33> <timestamp>
-        m_matrixLogger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "M00" + "," + "M01" + "," + "M02" + "," + "M03" + "," + "M10" + "," + "M11" + "," + "M12" + "," + "M13" + "," + "M20" + "," + "M21" + "," + "M22" + "," + "M23" + "," + "M30" + "," + "M31" + "," + "M32" + "," + "M33" + "," + "timestamp");
+        //m_matrixLogger.writeHeaders("participantID" + "," + "participantName" + "," + "condition" + "," + "block" + "," + "trial" + "," + "M00" + "," + "M01" + "," + "M02" + "," + "M03" + "," + "M10" + "," + "M11" + "," + "M12" + "," + "M13" + "," + "M20" + "," + "M21" + "," + "M22" + "," + "M23" + "," + "M30" + "," + "M31" + "," + "M32" + "," + "M33" + "," + "timestamp");
 
         ((CustomActivity)getContext()).runOnUiThread(new Runnable() {
             @Override
@@ -967,8 +977,8 @@ public class DrawView extends View {
         }
 
         // reset self color
-        Random rnd = new Random();
-        m_color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+        //Random rnd = new Random();
+        //m_color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
 
         resetCounters();
     }
@@ -1024,15 +1034,15 @@ public class DrawView extends View {
 
         //<participantID> <participantName> <condition> <block#> <trial#> <receiver name> <elapsed time for this trial> <number of errors for this trial> <number of release for this trial> <number of drops for this trial> <number of touch for this trial> <number of touch ball for this trial> <number of long press for this trial> <timestamp>
         if (m_logger != null) {
-            m_logger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_receiverName + "," + timeElapse + "," + m_numberOfErrors + "," + m_numberOfRelease + "," + m_numberOfDrops + "," + m_numberOfTouch + "," + m_numberOfTouchBall + "," + m_numberOfLongPress + "," + trailEndTime, true);
+            //m_logger.write(m_id + "," + m_name + "," + getResources().getString(R.string.app_name) + "," + m_currentBlock + "," + m_currentTrail + "," + m_receiverName + "," + timeElapse + "," + m_numberOfErrors + "," + m_numberOfRelease + "," + m_numberOfDrops + "," + m_numberOfTouch + "," + m_numberOfTouchBall + "," + m_numberOfLongPress + "," + trailEndTime, true);
         }
 
         if (m_angleLogger != null) {
-            m_angleLogger.flush();
+            //m_angleLogger.flush();
         }
 
         if (m_matrixLogger != null) {
-            m_matrixLogger.flush();
+            //m_matrixLogger.flush();
         }
 
         if (m_currentTrail < m_maxTrails) {
